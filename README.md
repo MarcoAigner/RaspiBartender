@@ -1,4 +1,16 @@
-# Smart Bartender - Remix by Danzibob (Originally by HackerShack)
+# Smart Bartender - Remote control Android extension
+
+This repository contains the code for the project 'remote bartender'.
+
+The project is done by students, as part of a lecture supervised by [Mr. Prof. Plechaty](#https://www.hs-neu-ulm.de/manfred-plechaty/) at the university of applied sciences Neu-Ulm.
+
+The goal of this project is to implement the [original project](#https://github.com/HackerShackOfficial/Smart-Bartender), before further developing a remote control ability. This is being achieved through an android app, communicating with the bartender using the mqtt-protocol.
+
+Because the project uses an i2c display, different to the original one, a [fork of the original project](#https://github.com/Danzibob/Smart-Bartender), written by the user Danzibob is being used.
+Further, a [library for implementing an mqtt-client in python](#https://github.com/eclipse/paho.mqtt.python) has been used.
+
+
+
 Cutting the threading and neo-pixel, and using an I2C OLED display to make this project just a little simpler
 
 **Requires [This OLED screen library](https://github.com/BLavery/lib_oled96) by [BLavery](https://github.com/BLavery)**
