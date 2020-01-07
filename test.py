@@ -1,4 +1,7 @@
-{
+import RPi.GPIO as gpio
+import time
+
+config = {
 	"pump_1": {
 		"name": "Pump 1",
 		"pin": 17,
@@ -30,3 +33,14 @@
 		"value": "cj"
 	}
 }
+
+gpio.setmode(gpio.BCM)
+gpio.setup(config, gpio.OUT)
+
+while True:
+	for i in config:
+		gpio.output(i, gpio.LOW)
+		time.sleep(2);
+		gpio.output(i, gpio.HIGH)
+		time.sleep(2);
+

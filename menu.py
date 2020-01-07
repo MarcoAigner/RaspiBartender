@@ -64,11 +64,11 @@ class MenuContext(object):
 		Tells the delegate to display the selection. Advances to the next selection if the 
 		menuItem is visible==False
 		"""
-		self.delegate.prepareForRender(self.topLevelMenu)
+		self.delegate.prepare_for_render(self.topLevelMenu)
 		if (not menuItem.visible):
 			self.advance()
 		else:
-			self.delegate.displayMenuItem(menuItem)
+			self.delegate.display_menu_items(menuItem)
 
 	def advance(self):
 		"""
@@ -99,7 +99,7 @@ class MenuContext(object):
 
 		"""
 		selection = self.currentMenu.getSelection()
-		if (not self.delegate.menuItemClicked(selection)):
+		if (not self.delegate.menu_item_clicked(selection)):
 			if (selection.type is "menu"):
 				self.setMenu(selection)
 			elif (selection.type is "back"):
@@ -110,19 +110,19 @@ class MenuContext(object):
 			self.display(self.currentMenu.getSelection())
 
 class MenuDelegate(object):
-	def prepareForRender(self, menu): 
+	def prepare_for_render(self, menu):
 		"""
 		Called before the menu needs to display. Useful for changing visibility. 
 		"""
 		raise NotImplementedError
 
-	def menuItemClicked(self, menuItem):
+	def menu_item_clicked(self, menuItem):
 		"""
 		Called when a menu item is selected. Useful for taking action on a menu item click.
 		"""
 		raise NotImplementedError
 
-	def displayMenuItem(self, menuItem):
+	def display_menu_items(self, menuItem):
 		"""
 		Called when the menu item should be displayed.
 		"""
