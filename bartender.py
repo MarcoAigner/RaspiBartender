@@ -47,90 +47,91 @@ OLED_DC_PIN = 16
 # TODO check the flow rate
 FLOW_RATE = 60.0 / 100.0
 
+# mqtt-connection related global variables
 mqttHost = "broker.mqttdashboard.com"
 mqttPort = 1883
 mqttTopic = "bartender"
 mqttQos = 1
 
-# setup a python logger, respectively a logging file
-logging.basicConfig(filename='example.log', level=logging.DEBUG)
+# initialization of a global mqtt-client
+mqtt_client = paho.Client()
 
 
-client = paho.Client()
-
-
+# mqtt on_connect
 def on_connect(client, userdata, flags, rc):
 	print("Connected with result code " + rc)
 	logging.info("Connected with result code " + rc)
 
 
+# mqtt on_subscribe
 def on_subscribe(client, userdata, mid, granted_qos):
 	print("Subscribed: " + str(mid) + " " + str(granted_qos))
 	logging.info("Subscribed: " + str(mid) + ", QoS: " + str(granted_qos))
 
 
+# mqtt on_message
 def on_message(client, userdata, msg):
+	# lists to store keys and values of the ingredients dictionary inside
 	keys = []
 	values = []
+	# initialization of empty ingredients dictionary and drink name
 	ingredients = {}
 	drink_name = ""
 	print("Received message with topic " + str(msg.topic) + ": " + str(msg.payload))
 	for drink in drink_list:
+		# incoming message matches drink in local drink-list
 		if drink["name"] == msg.payload:
 			drink_name = drink["name"]
 			print("Found " + str(drink["name"]) + " in drinks_list")
+			# loop through the drink's ingredient's keys and add them to their list
 			for key in drink["ingredients"].keys():
 				print(key)
 				keys.append(key)
+			# loop through the drink's ingredient's values and add them to their list
 			for value in drink["ingredients"].values():
 				print(value)
 				values.append(value)
+			# Combine the ingredient's keys and values to a local dictionary
 			ingredients = dict(zip(keys, values))
 			print("Final dictionary: " + str(ingredients))
+			# run the make_drink method using the local drink and ingredients variables
 			Bartender().make_drink(drink_name, ingredients)
 
 
 class Bartender(MenuDelegate):
-
-	def make_drink_on_message(self, message):
-		self.running = True
-		if message in drink_list:
-			ingredients = []
-			for ingredient in drink_list[message]:
-				ingredients.__add__(ingredient.keys())
 
 	def make_drink(self, drink, ingredients):
 		# cancel any button presses while the drink is being made
 		self.running = True
 
 		# Parse the drink ingredients and create pouring data
-		pumpTimes = []
+		pump_times = []
 		for ing in ingredients.keys():
 			for pump in self.pump_configuration.keys():
 				if ing == self.pump_configuration[pump]["value"]:
-					waitTime = ingredients[ing] * FLOW_RATE
-					pumpTimes.append([self.pump_configuration[pump]["pin"], waitTime])
+					wait_time = ingredients[ing] * FLOW_RATE
+					pump_times.append([self.pump_configuration[pump]["pin"], wait_time])
 
 		# Put the drinkjs in the order they'll stop pouring
-		pumpTimes.sort(key=lambda x: x[1])
+		pump_times.sort(key=lambda x: x[1])
 
 		# Note the total time required to pour the drink
-		totalTime = pumpTimes[-1][1]
+		total_time = pump_times[-1][1]
 
 		# Change the times to be relative to the previous not absolute
-		for i in range(1, len(pumpTimes)):
-			pumpTimes[i][1] -= pumpTimes[i - 1][1]
+		for i in range(1, len(pump_times)):
+			pump_times[i][1] -= pump_times[i - 1][1]
 
-		print(pumpTimes)
+		print(pump_times)
 
 		self.start_progressbar()
-		startTime = time.time()
+		start_time = time.time()
 		print("starting all")
-		GPIO.output([p[0] for p in pumpTimes], GPIO.LOW)
-		for p in pumpTimes:
+		GPIO.output([p[0] for p in pump_times], GPIO.LOW)
+		for p in pump_times:
 			pin, delay = p
 			if delay > 0:
-				self.sleep_and_progress(startTime, delay, totalTime)
+				self.sleep_and_progress(start_time, delay, total_time)
 			GPIO.output(pin, GPIO.HIGH)
 			print("stopping {}".format(pin))
 
@@ -141,7 +142,10 @@ class Bartender(MenuDelegate):
 		time.sleep(2)
 
 	def __init__(self):
+
+		# set state to inactive / not pouring a drink
 		self.running = False
+
 		print("Bartender booting up")
 
 		# set the oled screen height
@@ -156,7 +160,7 @@ class Bartender(MenuDelegate):
 		# creating a global reference for the i2c-connected display using the variable 'led'
 		self.led = ssd1306(I2CBUS)
 
-		# show the boot logo on startup
+		# show a boot logo on startup
 		# TODO zeit anpassen
 		self.show_boot_logo(1)
 
@@ -166,27 +170,41 @@ class Bartender(MenuDelegate):
 		# configure pumps
 		self.configure_pumps()
 
-		client.on_subscribe = on_subscribe
-		client.on_message = on_message
-		client.on_connect = on_connect
-		client.connect("broker.mqttdashboard.com", 1883)
-		client.subscribe("bartender", qos=1)
+		# setting up mqtt's callback methods
+		mqtt_client.on_subscribe = on_subscribe
+		mqtt_client.on_message = on_message
+		mqtt_client.on_connect = on_connect
+
+		# connect to the mqtt broker and subscribe to the topic 'bartender'
+		mqtt_client.connect(mqttHost, mqttPort)
+		mqtt_client.subscribe(mqttTopic, qos=mqttQos)
 
 		print("Initialization complete")
 
-	# Overrides the on_message method to clear the display and then show the messages payload on it
+	# setting up buttons using corresponding global variables
+	def set_button_pins(self):
+		self.btn2Pin = RIGHT_BTN_PIN
+		self.btn1Pin = LEFT_BTN_PIN
 
+	# setting up the screen size using corresponding global variables
+	def set_screen(self):
+		self.screen_height = SCREEN_HEIGHT
+		self.screen_width = SCREEN_WIDTH
+
+	# configuration of pumps based on the previously imported config in .json format
 	def configure_pumps(self):
-		# print("Configuring pumps")
 		for pump in self.pump_configuration.keys():
 			# print("Pump: "+[pump]["pin"])
 			GPIO.setup(self.pump_configuration[pump]["pin"], GPIO.OUT, initial=GPIO.HIGH)
 
+	# setup of button interrupts
+	# assign GPIO pins as input
 	def set_button_interrupts(self):
 		print("Setting up button interrupts")
 		GPIO.setup(self.btn1Pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		GPIO.setup(self.btn2Pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+	# presentation of a custom boot logo when first booting up
 	def show_boot_logo(self, seconds):
 		print("Showing boot logo")
 		logo = Image.open('pi_logo.png')
@@ -196,25 +214,18 @@ class Bartender(MenuDelegate):
 		# sleep for n seconds to show the raspberry logo
 		time.sleep(seconds)
 
-	def set_screen(self):
-		print("Setting Up Screen")
-		self.screen_width = SCREEN_WIDTH
-		self.screen_height = SCREEN_HEIGHT
-
-	def set_button_pins(self):
-		print("Assigning button pins")
-		self.btn1Pin = LEFT_BTN_PIN
-		self.btn2Pin = RIGHT_BTN_PIN
-
+	# import of pump-configuration in .json format
 	@staticmethod
 	def read_pump_configuration():
 		return json.load(open('pump_config.json'))
 
+	# possible edit of the pump_configuration
 	@staticmethod
 	def write_pump_configuration(configuration):
 		with open("pump_config.json", "w") as jsonFile:
 			json.dump(configuration, jsonFile)
 
+	# button interrupts -> handling of button clicks
 	def start_interrupts(self):
 		self.running = True
 		GPIO.add_event_detect(self.btn1Pin, GPIO.FALLING, callback=self.left_btn, bouncetime=LEFT_PIN_BOUNCE)
@@ -222,6 +233,7 @@ class Bartender(MenuDelegate):
 		time.sleep(1)
 		self.running = False
 
+	# instantiation of a display-menu using menu.py
 	def build_menu(self, drink_list, drink_options):
 		# create a new main menu
 		m = Menu("Main Menu")
@@ -261,32 +273,32 @@ class Bartender(MenuDelegate):
 		# create a menu context
 		self.menuContext = MenuContext(m, self)
 
+	# Removes any drinks out of the local stack that can't be handled by the pump configuration
 	def filter_drinks(self, menu):
-		# Removes any drinks that can't be handled by the pump configuration
 		for i in menu.options:
-			if (i.type == "drink"):
+			if i.type == "drink":
 				i.visible = False
 				ingredients = i.attributes["ingredients"]
-				presentIng = 0
+				present_ing = 0
 				for ing in ingredients.keys():
 					for p in self.pump_configuration.keys():
-						if (ing == self.pump_configuration[p]["value"]):
-							presentIng += 1
-				if (presentIng == len(ingredients.keys())):
+						if ing == self.pump_configuration[p]["value"]:
+							present_ing += 1
+				if present_ing == len(ingredients.keys()):
 					i.visible = True
-			elif (i.type == "menu"):
+			elif i.type == "menu":
 				self.filter_drinks(i)
 
 	def select_configurations(self, menu):
 		# Adds a selection star to the pump configuration option
 		for i in menu.options:
-			if (i.type == "pump_selection"):
+			if i.type == "pump_selection":
 				key = i.attributes["key"]
-				if (self.pump_configuration[key]["value"] == i.attributes["value"]):
+				if self.pump_configuration[key]["value"] == i.attributes["value"]:
 					i.name = "%s %s" % (i.attributes["name"], "*")
 				else:
 					i.name = i.attributes["name"]
-			elif (i.type == "menu"):
+			elif i.type == "menu":
 				self.select_configurations(i)
 
 	def prepare_for_render(self, menu):
@@ -324,6 +336,7 @@ class Bartender(MenuDelegate):
 		# sleep for a couple seconds to make sure the interrupts don't get triggered
 		time.sleep(2);
 
+	# display the current menu item on the i2c-display
 	def display_menu_items(self, menuItem):
 		print(menuItem.name)
 		self.led.cls()
@@ -331,15 +344,17 @@ class Bartender(MenuDelegate):
 		self.led.display()
 
 	# def pour(self, pin, waitTime):
-	#	GPIO.output(pin, GPIO.LOW)
-	#	time.sleep(waitTime)
-	#	GPIO.output(pin, GPIO.HIGH)
+		# GPIO.output(pin, GPIO.LOW)
+		# time.sleep(waitTime)
+		# GPIO.output(pin, GPIO.HIGH)
 
+	# initial display of a progressbar during pour process
 	def start_progressbar(self, x=15, y=20):
 		start_time = time.time()
 		self.led.cls()
 		self.led.canvas.text((10, 20), "Dispensing...", font=FONT, fill=1)
 
+	# animated processing of a progress bar
 	def sleep_and_progress(self, startTime, waitTime, totalTime, x=15, y=35):
 		localStartTime = time.time()
 		height = 10
@@ -356,6 +371,7 @@ class Bartender(MenuDelegate):
 				print("Failed to talk to screen")
 			time.sleep(0.2)
 
+	# handle a left button press -> cycle through the menu
 	def left_btn(self, ctx):
 		print("LEFT_BTN pressed")
 		if not self.running:
@@ -364,6 +380,7 @@ class Bartender(MenuDelegate):
 			print("Finished processing button press")
 		self.running = False
 
+	# handle a right button press -> select the current item
 	def right_btn(self, ctx):
 		print("RIGHT_BTN pressed")
 		if not self.running:
@@ -373,21 +390,29 @@ class Bartender(MenuDelegate):
 			self.running = 2
 			print("Starting button timeout")
 
+	# main loop running indefinitely
 	def run(self):
 		self.start_interrupts()
 		# main loop
 		try:
 			while True:
-				client.loop()
+				# every 0.1 seconds, loop and listen for new mqtt input
+				mqtt_client.loop()
 				time.sleep(0.1)
 
+		# clear the GPIO pins on manual CTR+C exit
 		except KeyboardInterrupt:
 			GPIO.cleanup()  # clean up GPIO on CTRL+C exit
 		GPIO.cleanup()  # clean up GPIO on normal exit
 
 		traceback.print_exc()
 
+# main program part
 
+
+# initialize a bartender object
 bartender = Bartender()
+# build it's menu
 bartender.build_menu(drink_list, drink_options)
+# run the bartender
 Process(target=bartender.run).start()
