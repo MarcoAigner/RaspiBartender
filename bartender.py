@@ -53,50 +53,6 @@ mqttPort = 1883
 mqttTopic = "bartender"
 mqttQos = 1
 
-# initialization of a global mqtt-client
-mqtt_client = paho.Client()
-
-
-# mqtt on_connect
-def on_connect(client, userdata, flags, rc):
-	print("Connected with result code " + rc)
-	logging.info("Connected with result code " + rc)
-
-
-# mqtt on_subscribe
-def on_subscribe(client, userdata, mid, granted_qos):
-	print("Subscribed: " + str(mid) + " " + str(granted_qos))
-	logging.info("Subscribed: " + str(mid) + ", QoS: " + str(granted_qos))
-
-
-# mqtt on_message
-def on_message(client, userdata, msg):
-	# lists to store keys and values of the ingredients dictionary inside
-	keys = []
-	values = []
-	# initialization of empty ingredients dictionary and drink name
-	ingredients = {}
-	drink_name = ""
-	print("Received message with topic " + str(msg.topic) + ": " + str(msg.payload))
-	for drink in drink_list:
-		# incoming message matches drink in local drink-list
-		if drink["name"] == msg.payload:
-			drink_name = drink["name"]
-			print("Found " + str(drink["name"]) + " in drinks_list")
-			# loop through the drink's ingredient's keys and add them to their list
-			for key in drink["ingredients"].keys():
-				print(key)
-				keys.append(key)
-			# loop through the drink's ingredient's values and add them to their list
-			for value in drink["ingredients"].values():
-				print(value)
-				values.append(value)
-			# Combine the ingredient's keys and values to a local dictionary
-			ingredients = dict(zip(keys, values))
-			print("Final dictionary: " + str(ingredients))
-			# run the make_drink method using the local drink and ingredients variables
-			Bartender().make_drink(drink_name, ingredients)
-
 
 class Bartender(MenuDelegate):
 
@@ -170,14 +126,7 @@ class Bartender(MenuDelegate):
 		# configure pumps
 		self.configure_pumps()
 
-		# setting up mqtt's callback methods
-		mqtt_client.on_subscribe = on_subscribe
-		mqtt_client.on_message = on_message
-		mqtt_client.on_connect = on_connect
 
-		# connect to the mqtt broker and subscribe to the topic 'bartender'
-		mqtt_client.connect(mqttHost, mqttPort)
-		mqtt_client.subscribe(mqttTopic, qos=mqttQos)
 
 		print("Initialization complete")
 
@@ -412,6 +361,56 @@ class Bartender(MenuDelegate):
 
 # initialize a bartender object
 bartender = Bartender()
+
+# initialization of a global mqtt-client
+mqtt_client = paho.Client()
+
+
+# connect to the mqtt broker and subscribe to the topic 'bartender'
+mqtt_client.connect(mqttHost, mqttPort)
+mqtt_client.subscribe(mqttTopic, qos=mqttQos)
+
+
+# mqtt on_subscribe
+def on_subscribe(client, userdata, mid, granted_qos):
+	print("Subscribed: " + str(mid) + " " + str(granted_qos))
+	logging.info("Subscribed: " + str(mid) + ", QoS: " + str(granted_qos))
+
+
+# mqtt on_message
+def on_message(client, userdata, msg):
+	# lists to store keys and values of the ingredients dictionary inside
+	keys = []
+	values = []
+	# initialization of empty ingredients dictionary and drink name
+	ingredients = {}
+	drink_name = ""
+	print("Received message with topic " + str(msg.topic) + ": " + str(msg.payload))
+	for drink in drink_list:
+		# incoming message matches drink in local drink-list
+		if drink["name"] == msg.payload:
+			drink_name = drink["name"]
+			print("Found " + str(drink["name"]) + " in drinks_list")
+			# loop through the drink's ingredient's keys and add them to their list
+			for key in drink["ingredients"].keys():
+				print(key)
+				keys.append(key)
+			# loop through the drink's ingredient's values and add them to their list
+			for value in drink["ingredients"].values():
+				print(value)
+				values.append(value)
+			# Combine the ingredient's keys and values to a local dictionary
+			ingredients = dict(zip(keys, values))
+			print("Final dictionary: " + str(ingredients))
+			# run the make_drink method using the local drink and ingredients variables
+			# Bartender().make_drink(drink_name, ingredients)
+			bartender.make_drink(drink_name, ingredients)
+
+
+# setting up mqtt's callback methods
+mqtt_client.on_subscribe = on_subscribe
+mqtt_client.on_message = on_message
+
 # build it's menu
 bartender.build_menu(drink_list, drink_options)
 # run the bartender
