@@ -1,16 +1,17 @@
-# Smart Bartender - Remote control Android extension
+# Remote Pi Bartender - python code
 
-This repository contains the code for the project 'remote bartender'.
+This repository is one of two parts of the project *Remote Pi Bartender*, built by students at the university of applied sciences Neu-Ulm.
 
-The project is done by students, as part of a lecture supervised by [Mr. Prof. Plechaty](https://www.hs-neu-ulm.de/manfred-plechaty/) at the university of applied sciences Neu-Ulm.
+The project acts as a base for a seminar paper written in context of the lecture *Future Cars*, supervised by [Mr. Prof. Plechaty](https://www.hs-neu-ulm.de/manfred-plechaty/).
 
-The goal of this project is to implement the [original project](https://github.com/HackerShackOfficial/Smart-Bartender), before further developing a remote control ability. This is being achieved through an android app, communicating with the bartender using the mqtt-protocol.
+Research background was the question, if it was possible to extend the [original project *Smart Bartender*](https://github.com/HackerShackOfficial/Smart-Bartender) with a remote control.
+This has been achieved successfully using the mqtt-communication protocol.
 
 Because the project uses an i2c display, different to the original one, a [fork of the original project](https://github.com/Danzibob/Smart-Bartender), written by the user Danzibob is being used.
 
 Further, a [library for implementing an mqtt-client in python](https://github.com/eclipse/paho.mqtt.python) has been used.
 
-Everything below this line is part of the legacy README.
+**Everything below this line is part of the legacy README.**
 
 ---
 
