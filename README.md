@@ -9,6 +9,8 @@ This has been achieved successfully using the mqtt-communication protocol.
 
 Because the project uses an i2c display, different to the original one, a [fork of the original project](https://github.com/Danzibob/Smart-Bartender), written by the user Danzibob is being used.
 
+For the initial testing of gpio control [another users gpio test library](https://github.com/Mattrachwal/gpio-8channel-relay-test) was used
+
 Further, a [library for implementing an mqtt-client in python](https://github.com/eclipse/paho.mqtt.python) has been used.
 
 <div class="row">
