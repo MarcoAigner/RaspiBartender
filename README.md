@@ -11,6 +11,15 @@ Because the project uses an i2c display, different to the original one, a [fork 
 
 Further, a [library for implementing an mqtt-client in python](https://github.com/eclipse/paho.mqtt.python) has been used.
 
+<div class="row">
+  <div class="column">
+    <img src="https://i.imgur.com/Uvx0VZH.jpg" alt="Bartender" style="width:100%">
+  </div>
+  <div class="column">
+    <img src="https://i.imgur.com/CzKvYwu.png" alt="App" style="width:100%">
+  </div>
+</div>
+
 **Everything below this line is part of the legacy README.**
 
 ---
